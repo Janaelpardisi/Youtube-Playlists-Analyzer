@@ -39,8 +39,8 @@
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/youtube-playlist-analyzer.git
-cd youtube-playlist-analyzer
+git clone https://github.com/Janaelpardisi/Youtube-Playlists-Analyzer.git
+cd Youtube-Playlists-Analyzer
 ```
 
 **2. Install dependencies**
