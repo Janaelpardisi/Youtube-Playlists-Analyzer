@@ -29,7 +29,7 @@ def _save_sessions(data: Dict):
 
 def create_session(channel_name: str, channel_id: str, playlist_name: str,
                    playlist_id: str, total_videos: int) -> str:
-    """Create a new analysis session and return session_id."""
+    """Creates a new session and returns its ID."""
     data = _load_sessions()
     session_id = str(uuid.uuid4())[:8]
 
@@ -54,7 +54,7 @@ def create_session(channel_name: str, channel_id: str, playlist_name: str,
 
 
 def update_session(session_id: str, analyzed_count: int, last_batch: int):
-    """Update session progress after each batch."""
+    """Updates the progress counters for a session after each analyzed batch."""
     data = _load_sessions()
     for session in data["sessions"]:
         if session["session_id"] == session_id:
@@ -68,7 +68,7 @@ def update_session(session_id: str, analyzed_count: int, last_batch: int):
 
 
 def complete_session(session_id: str):
-    """Mark session as completed."""
+    """Marks a session as fully completed."""
     data = _load_sessions()
     for session in data["sessions"]:
         if session["session_id"] == session_id:
@@ -78,10 +78,10 @@ def complete_session(session_id: str):
     _save_sessions(data)
 
 
-# ── Feature 2 — Summary ──────────────────────
+# ── Summary ────────────────────────────────────────────────────────────────────
 
 def save_session_summary(session_id: str, summary: str):
-    """Save AI-generated playlist summary to session."""
+    """Stores the generated playlist summary directly in the session record."""
     data = _load_sessions()
     for session in data["sessions"]:
         if session["session_id"] == session_id:
@@ -92,7 +92,7 @@ def save_session_summary(session_id: str, summary: str):
 
 
 def get_session_summary(session_id: str) -> Optional[str]:
-    """Get saved summary for a session."""
+    """Returns the cached summary for a session, or None if not generated yet."""
     data = _load_sessions()
     for session in data["sessions"]:
         if session["session_id"] == session_id:
@@ -100,10 +100,10 @@ def get_session_summary(session_id: str) -> Optional[str]:
     return None
 
 
-# ── Feature 3 — Learning Path ────────────────
+# ── Learning Path ──────────────────────────────────────────────────────────────
 
 def save_learning_path(session_id: str, learning_path: Dict):
-    """Save AI-generated learning path to session."""
+    """Stores the generated learning path directly in the session record."""
     data = _load_sessions()
     for session in data["sessions"]:
         if session["session_id"] == session_id:
@@ -114,7 +114,7 @@ def save_learning_path(session_id: str, learning_path: Dict):
 
 
 def get_learning_path(session_id: str) -> Optional[Dict]:
-    """Get saved learning path for a session."""
+    """Returns the cached learning path for a session, or None if not generated yet."""
     data = _load_sessions()
     for session in data["sessions"]:
         if session["session_id"] == session_id:
@@ -122,21 +122,21 @@ def get_learning_path(session_id: str) -> Optional[Dict]:
     return None
 
 
-# ── General ──────────────────────────────────
+# ── General ────────────────────────────────────────────────────────────────────
 
 def get_all_sessions() -> List[Dict]:
-    """Get all sessions (both in_progress and completed)."""
+    """Returns all sessions sorted by most recently updated."""
     data = _load_sessions()
     return sorted(data["sessions"], key=lambda x: x["last_updated"], reverse=True)
 
 
 def get_active_sessions() -> List[Dict]:
-    """Get only in-progress sessions."""
+    """Returns only sessions that are still in progress."""
     return [s for s in get_all_sessions() if s["status"] == "in_progress"]
 
 
 def get_session(session_id: str) -> Optional[Dict]:
-    """Get a specific session by ID."""
+    """Looks up a session by its ID."""
     data = _load_sessions()
     for session in data["sessions"]:
         if session["session_id"] == session_id:
@@ -145,12 +145,11 @@ def get_session(session_id: str) -> Optional[Dict]:
 
 
 def delete_session(session_id: str):
-    """Delete a session."""
+    """Deletes a session and removes its cached results file."""
     data = _load_sessions()
     data["sessions"] = [s for s in data["sessions"] if s["session_id"] != session_id]
     _save_sessions(data)
 
-    # Also delete cached results
     result_file = DATA_DIR / f"{session_id}.json"
     if result_file.exists():
         result_file.unlink()

@@ -3,7 +3,7 @@ from typing import Optional, List, Dict, Any
 
 
 class ChannelSearchRequest(BaseModel):
-    query: str  # channel name, URL, or playlist URL
+    query: str  # can be a channel name, channel URL, or a direct playlist URL
 
 
 class PlaylistSelectRequest(BaseModel):
@@ -22,7 +22,6 @@ class VideoSummary(BaseModel):
     thumbnail: Optional[str] = None
     explanation: Optional[str] = None
     analyzed: bool = False
-    # Feature 1 — Auto-Tagging
     level: Optional[str] = None
     type: Optional[str] = None
     topics: Optional[List[str]] = None
@@ -56,7 +55,7 @@ class SessionInfo(BaseModel):
     analyzed_count: int
     last_batch: int
     last_updated: str
-    status: str  # in_progress | completed
+    status: str  # "in_progress" | "completed"
     summary: Optional[str] = None
 
 
@@ -69,10 +68,8 @@ class BatchResult(BaseModel):
     is_complete: bool
 
 
-#  Feature 4
-
 class ChatMessage(BaseModel):
-    role: str   # 'user' | 'assistant'
+    role: str   # "user" | "assistant"
     content: str
 
 
@@ -85,8 +82,6 @@ class ChatResponse(BaseModel):
     answer: str
     referenced_videos: Optional[List[Dict[str, Any]]] = []
 
-
-#  Feature 5
 
 class CompareRequest(BaseModel):
     session_id_a: str

@@ -175,6 +175,6 @@ youtube-playlist-analyzer/
 
 <div align="center">
 
-Made with Jana ❤️ using FastAPI & Google Gemini AI
+Built by Jana Ashraf El-Pardisi
 
 </div>

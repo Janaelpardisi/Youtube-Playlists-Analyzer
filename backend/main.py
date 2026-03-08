@@ -34,8 +34,7 @@ def root():
     return FileResponse(str(FRONTEND_DIR / "index.html"))
 
 
-
-# Sessions / Memory
+# ── Sessions ───────────────────────────────────────────────────────────────────
 
 
 @app.get("/api/sessions")
@@ -61,13 +60,13 @@ def get_session_results(session_id: str):
     return {"session": session, "videos": results}
 
 
-
-# Channel & Playlist Discovery
+# ── Search & Discovery ─────────────────────────────────────────────────────────
 
 @app.post("/api/search")
 def search(request: ChannelSearchRequest):
     query = request.query.strip()
 
+    # check if the user pasted a playlist URL directly
     playlist_id = youtube_service.extract_playlist_id(query)
     if playlist_id:
         info = youtube_service.get_playlist_info(playlist_id)
@@ -87,8 +86,7 @@ def get_playlists(channel_id: str):
     return {"playlists": playlists}
 
 
-
-# Session Start
+# ── Session Start ──────────────────────────────────────────────────────────────
 
 
 @app.post("/api/sessions/start")
@@ -112,6 +110,7 @@ def start_session(data: dict):
         total_videos=total
     )
 
+    # save all videos as unanalyzed initially so we can track progress
     unanalyzed = [
         {**v, "analyzed": False, "explanation": None,
          "level": None, "type": None, "topics": [],
@@ -129,7 +128,7 @@ def start_session(data: dict):
     }
 
 
-# Batch Analysis
+# ── Batch Analysis ─────────────────────────────────────────────────────────────
 
 
 @app.post("/api/sessions/{session_id}/analyze-next")
@@ -148,6 +147,7 @@ def analyze_next_batch(session_id: str):
         memory_service.complete_session(session_id)
         return {"message": "All videos analyzed!", "is_complete": True, "videos": []}
 
+    # process 3 videos at a time to keep requests reasonable
     batch = unanalyzed[:3]
 
     enriched_batch = []
@@ -175,7 +175,7 @@ def analyze_next_batch(session_id: str):
     }
 
 
-# Single Video Analysis (on-demand)
+# ── Single Video (on-demand) ───────────────────────────────────────────────────
 
 @app.post("/api/sessions/{session_id}/analyze-video")
 def analyze_single_video(session_id: str, data: dict):
@@ -217,16 +217,14 @@ def analyze_single_video(session_id: str, data: dict):
     }
 
 
-# Feature 2 — Playlist Summary
+# ── Playlist Summary ───────────────────────────────────────────────────────────
 
 @app.post("/api/sessions/{session_id}/summary")
 def generate_summary(session_id: str):
-    """Generate an AI executive summary for the entire analyzed playlist."""
     session = memory_service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Return cached summary if exists
     cached = memory_service.get_session_summary(session_id)
     if cached:
         return {"summary": cached, "cached": True}
@@ -245,18 +243,15 @@ def generate_summary(session_id: str):
     return {"summary": summary, "cached": False}
 
 
-
-# Feature 3 — Learning Path
+# ── Learning Path ──────────────────────────────────────────────────────────────
 
 
 @app.post("/api/sessions/{session_id}/learning-path")
 def generate_learning_path(session_id: str):
-    """Generate a smart learning path for the analyzed playlist."""
     session = memory_service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Return cached if exists
     cached = memory_service.get_learning_path(session_id)
     if cached:
         return {"learning_path": cached, "cached": True}
@@ -273,13 +268,11 @@ def generate_learning_path(session_id: str):
     return {"learning_path": learning_path, "cached": False}
 
 
-
-# Feature 4 — Chat with Playlist
+# ── Chat ───────────────────────────────────────────────────────────────────────
 
 
 @app.post("/api/sessions/{session_id}/chat")
 def chat_with_playlist(session_id: str, request: ChatRequest):
-    """Answer a question about the analyzed playlist using AI."""
     session = memory_service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -305,13 +298,11 @@ def chat_with_playlist(session_id: str, request: ChatRequest):
     )
 
 
-
-# Feature 5 — Compare Playlists
+# ── Compare Playlists ──────────────────────────────────────────────────────────
 
 
 @app.post("/api/compare")
 def compare_playlists(request: CompareRequest):
-    """Compare two analyzed playlists."""
     session_a = memory_service.get_session(request.session_id_a)
     session_b = memory_service.get_session(request.session_id_b)
 

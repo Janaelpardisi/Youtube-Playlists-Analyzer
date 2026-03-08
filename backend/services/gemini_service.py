@@ -12,13 +12,12 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def _safe_json(text: str) -> Optional[dict]:
-    """Try to extract JSON from Gemini response."""
+    # try to parse the response directly first
     try:
-        # Try direct parse first
         return json.loads(text.strip())
     except Exception:
         pass
-    # Try extracting JSON block from markdown
+    # sometimes the model wraps JSON in a markdown code block, handle that
     match = re.search(r"```(?:json)?\s*([\s\S]+?)```", text)
     if match:
         try:
@@ -28,14 +27,12 @@ def _safe_json(text: str) -> Optional[dict]:
     return None
 
 
-# ─────────────────────────────────────────────
-# Feature 1 — Analyze + Auto-Tag (per video)
-# ─────────────────────────────────────────────
+# ── Video Analysis ─────────────────────────────────────────────────────────────
 
 def analyze_batch(videos: List[Dict]) -> List[Dict]:
     """
-    Analyze a batch of videos using Gemini.
-    Returns each video enriched with: explanation, level, type, topics,
+    Takes a list of videos (with optional transcripts) and runs each one
+    through Gemini to extract: explanation, level, type, topics,
     estimated_minutes, requires_previous.
     """
     results = []
@@ -85,7 +82,7 @@ def analyze_batch(videos: List[Dict]) -> List[Dict]:
                     "analyzed": True
                 })
             else:
-                # Fallback: treat whole response as explanation
+                # model didn't return valid JSON — use raw text as explanation
                 results.append({
                     **video,
                     "explanation": response.text.strip(),
@@ -111,15 +108,13 @@ def analyze_batch(videos: List[Dict]) -> List[Dict]:
     return results
 
 
-# ─────────────────────────────────────────────
-# Feature 2 — Playlist Executive Summary
-# ─────────────────────────────────────────────
+# ── Playlist Summary ───────────────────────────────────────────────────────────
 
 def generate_playlist_summary(videos: List[Dict], playlist_name: str) -> str:
     """
-    Generate a comprehensive executive summary for the entire playlist.
+    Generates a full executive summary for the entire playlist.
+    Only includes videos that have already been analyzed.
     """
-    # Build a compact context: position, title, topics, level
     video_lines = []
     for v in videos:
         if not v.get("analyzed"):
@@ -160,14 +155,12 @@ def generate_playlist_summary(videos: List[Dict], playlist_name: str) -> str:
         return f"تعذر توليد الملخص: {str(e)}"
 
 
-# ─────────────────────────────────────────────
-# Feature 3 — Learning Path Generator
-# ─────────────────────────────────────────────
+# ── Learning Path ──────────────────────────────────────────────────────────────
 
 def generate_learning_path(videos: List[Dict]) -> Dict:
     """
-    Generate a smart learning path grouping videos into phases.
-    Returns: { phases: [ { title, description, video_ids, order } ] }
+    Groups analyzed videos into logical learning phases.
+    Returns: { phases: [ { title, description, video_ids } ] }
     """
     analyzed = [v for v in videos if v.get("analyzed")]
     if not analyzed:
@@ -211,9 +204,7 @@ def generate_learning_path(videos: List[Dict]) -> Dict:
         return {"phases": [], "error": str(e)}
 
 
-# ─────────────────────────────────────────────
-# Feature 4 — Chat with Playlist (Q&A)
-# ─────────────────────────────────────────────
+# ── Chat with Playlist ─────────────────────────────────────────────────────────
 
 def chat_with_playlist(
     question: str,
@@ -222,13 +213,12 @@ def chat_with_playlist(
     chat_history: List[Dict]
 ) -> Dict:
     """
-    Answer a user's question based on the analyzed playlist content.
-    chat_history: list of {role: 'user'|'assistant', content: str}
+    Answers a user's question based on the analyzed playlist data.
+    chat_history: list of { role: 'user' | 'assistant', content: str }
     Returns: { answer: str, referenced_videos: [ {video_id, title, position} ] }
     """
     analyzed = [v for v in videos if v.get("analyzed")]
 
-    # Build compact video context
     video_context = []
     for v in analyzed:
         topics_str = "، ".join(v.get("topics", [])) if v.get("topics") else "—"
@@ -240,11 +230,11 @@ def chat_with_playlist(
 
     context_str = "\n".join(video_context)
 
-    # Build history string
+    # keep only the last 6 messages to avoid a huge prompt
     history_str = ""
     if chat_history:
         history_lines = []
-        for msg in chat_history[-6:]:  # last 6 messages only
+        for msg in chat_history[-6:]:
             role = "المستخدم" if msg.get("role") == "user" else "المساعد"
             history_lines.append(f"{role}: {msg.get('content', '')}")
         history_str = "\n".join(history_lines)
@@ -281,16 +271,14 @@ def chat_with_playlist(
         return {"answer": f"تعذر الإجابة: {str(e)}", "referenced_videos": []}
 
 
-# ─────────────────────────────────────────────
-# Feature 5 — Playlist Comparison
-# ─────────────────────────────────────────────
+# ── Playlist Comparison ────────────────────────────────────────────────────────
 
 def compare_playlists(
     playlist_a: Dict,   # { name, videos: List[Dict] }
     playlist_b: Dict    # { name, videos: List[Dict] }
 ) -> Dict:
     """
-    Compare two analyzed playlists and return structured comparison.
+    Compares two analyzed playlists and returns a structured comparison result.
     """
     def summarize(playlist: Dict) -> str:
         name = playlist.get("name", "—")

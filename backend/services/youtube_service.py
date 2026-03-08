@@ -12,24 +12,27 @@ youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 
 
 def extract_playlist_id(url: str) -> Optional[str]:
-    """Extract playlist ID from a YouTube playlist URL."""
+    """Pulls the playlist ID out of a YouTube URL if there is one."""
     match = re.search(r"list=([A-Za-z0-9_-]+)", url)
     return match.group(1) if match else None
 
 
 def extract_channel_handle(url: str) -> Optional[str]:
-    """Extract channel handle from URL like youtube.com/@handle."""
+    """Pulls the @handle from a YouTube channel URL."""
     match = re.search(r"@([A-Za-z0-9_.-]+)", url)
     return match.group(1) if match else None
 
 
 def search_channels(query: str) -> List[Dict]:
-    """Search for YouTube channels by name or URL."""
-    # If it's a direct playlist link, return empty (handled separately)
+    """
+    Searches YouTube for channels matching the given query.
+    If the query is a direct playlist link we skip this and return an empty list
+    since the playlist is already handled separately.
+    """
     if "playlist?list=" in query or "list=" in query:
         return []
 
-    # If it's a channel URL with @handle
+    # if the user pasted a channel URL, extract the handle and use it as the query
     handle = extract_channel_handle(query)
     search_query = handle if handle else query
 
@@ -52,7 +55,7 @@ def search_channels(query: str) -> List[Dict]:
 
 
 def get_channel_playlists(channel_id: str) -> List[Dict]:
-    """Get all playlists for a given channel."""
+    """Fetches all playlists for a given channel, handling pagination automatically."""
     playlists = []
     next_page_token = None
 
@@ -81,7 +84,7 @@ def get_channel_playlists(channel_id: str) -> List[Dict]:
 
 
 def get_playlist_videos(playlist_id: str) -> List[Dict]:
-    """Get all videos in a playlist with their titles and positions."""
+    """Fetches all videos in a playlist with title, position and thumbnail."""
     videos = []
     next_page_token = None
 
@@ -112,7 +115,7 @@ def get_playlist_videos(playlist_id: str) -> List[Dict]:
 
 
 def get_video_details(video_ids: List[str]) -> Dict[str, Dict]:
-    """Get full details for a batch of videos."""
+    """Fetches full metadata for a batch of video IDs."""
     response = youtube.videos().list(
         part="snippet,contentDetails",
         id=",".join(video_ids)
@@ -131,13 +134,17 @@ def get_video_details(video_ids: List[str]) -> Dict[str, Dict]:
 
 
 def get_transcript(video_id: str, languages: List[str] = ["ar", "en"]) -> str:
-    """Attempt to get transcript for a video. Returns empty string if unavailable."""
+    """
+    Tries to fetch the transcript for a video.
+    Falls back to any available language if Arabic/English aren't found.
+    Returns an empty string if transcripts are disabled or unavailable.
+    """
     try:
         transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=languages)
-        return " ".join([t["text"] for t in transcript_list])[:8000]  # limit to 8000 chars
+        return " ".join([t["text"] for t in transcript_list])[:8000]
     except (NoTranscriptFound, TranscriptsDisabled):
         try:
-            # Try any available language
+            # last resort — grab whatever language is available
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
             return " ".join([t["text"] for t in transcript_list])[:8000]
         except Exception:
@@ -147,7 +154,7 @@ def get_transcript(video_id: str, languages: List[str] = ["ar", "en"]) -> str:
 
 
 def get_playlist_info(playlist_id: str) -> Optional[Dict]:
-    """Get playlist metadata."""
+    """Fetches metadata for a single playlist by its ID."""
     response = youtube.playlists().list(
         part="snippet,contentDetails",
         id=playlist_id
