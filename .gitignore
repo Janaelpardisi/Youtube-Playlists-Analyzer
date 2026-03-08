@@ -1,0 +1,38 @@
+# ── Environment & Secrets ─────────────────────
+.env
+*.env
+.env.local
+.env.production
+
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# ── Virtual Environments ──────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Data / Cache (user-specific) ─────────────
+data/
+
+# ── IDE / Editor ──────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────
+*.log
+logs/
