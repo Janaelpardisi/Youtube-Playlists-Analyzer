@@ -175,6 +175,6 @@ youtube-playlist-analyzer/
 
 <div align="center">
 
-Made with ❤️ using FastAPI & Google Gemini AI
+Made with Jana ❤️ using FastAPI & Google Gemini AI
 
 </div>
